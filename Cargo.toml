@@ -1,0 +1,8 @@
+[package]
+name = "cpp-interface-parser"
+version = "0.1.0"
+authors = ["Jupp Mueller <jupp0r@gmail.com>"]
+
+[dependencies]
+nom = "^3.2"
+error-chain = "0.11.0"
