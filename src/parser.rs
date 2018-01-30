@@ -8,7 +8,7 @@ named!(
     ))
 );
 
-named!(pub include_block(&[u8]) -> Vec<&[u8]>, many1!(one_include));
+named!(pub include_block(&[u8]) -> Vec<&[u8]>, preceded!(take_until!("#include"), many1!(one_include)));
 
 named!(
     one_namespace,
@@ -21,7 +21,20 @@ named!(
     ))
 );
 
-named!(namespaces(&[u8]) -> Vec<&[u8]>, ws!(many1!(one_namespace)));
+named!(namespaces(&[u8]) -> Vec<&[u8]>, preceded!(take_until!("namespace"),many1!(one_namespace)));
+
+named!(
+    class_name,
+    preceded!(
+        alt!(take_until_and_consume!("class") | take_until_and_consume!("struct")),
+        ws!(terminated!(
+            take_while!(is_alphanumeric),
+            take_until_and_consume!("{")
+        ))
+    )
+);
+
+named!(pub header(&[u8]) -> (Vec<&[u8]>, Vec<&[u8]>, &[u8]), tuple!(include_block, namespaces, class_name));
 
 #[cfg(test)]
 mod test {
@@ -123,6 +136,25 @@ namespace baz{
         assert_eq!(
             namespaces(namespace_block),
             IResult::Done(&b""[..], vec![&b"foo"[..], &b"bar"[..], &b"baz"[..]])
+        );
+    }
+
+    // tests for class_name
+    #[test]
+    fn test_class_name_class() {
+        let class_block = &br###"class Foo {"###[..];
+        assert_eq!(
+            class_name(class_block),
+            IResult::Done(&b""[..], &b"Foo"[..])
+        );
+    }
+
+    #[test]
+    fn test_class_name_struct() {
+        let class_block = &br###"struct Bar {"###[..];
+        assert_eq!(
+            class_name(class_block),
+            IResult::Done(&b""[..], &b"Bar"[..])
         );
     }
 }
