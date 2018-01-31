@@ -13,8 +13,6 @@ use errors::*;
 use std::vec::Vec;
 use std::iter::Iterator;
 
-use nom::IResult;
-
 #[derive(Debug, PartialEq)]
 pub struct Class {
     pub namespaces: Vec<String>,
@@ -54,7 +52,7 @@ pub fn parse<T: AsRef<str>>(input: &T) -> Result<Model> {
             }
         })
         .to_result()
-        .map_err()
+        .map_err(|e| format!("{:?}", e).into())
 }
 
 #[cfg(test)]
@@ -87,5 +85,14 @@ mod tests {
     fn it_parses_class_names() {
         let model = parse(&TEST_INTERFACE).unwrap();
         assert_eq!(model.classes[0].name, "Bar");
+    }
+
+    #[test]
+    fn it_parses_namespaces() {
+        let model = parse(&TEST_INTERFACE).unwrap();
+        assert_eq!(
+            model.classes[0].namespaces,
+            vec!["a".to_owned(), "da".to_owned()]
+        )
     }
 }
