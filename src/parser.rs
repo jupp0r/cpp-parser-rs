@@ -34,9 +34,10 @@ named!(
     )
 );
 
-named!(pub header(&[u8]) -> (Vec<&[u8]>, Vec<&[u8]>, &[u8]),
-       tuple!(include_block, namespaces, class_name));
+named!(pub header(&[u8]) -> (Vec<&[u8]>, Vec<&[u8]>, &[u8], Vec<Method>),
+       tuple!(include_block, namespaces, class_name, many0!(method)));
 
+#[derive(Debug, PartialEq)]
 pub struct Method {
     pub return_value: Option<String>,
     pub name: String,
@@ -44,6 +45,7 @@ pub struct Method {
     pub arguments: Vec<Argument>,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct Argument {
     pub argument_type: String,
     pub argument_name: Option<String>,
@@ -78,7 +80,9 @@ fn make_argument(parsed_argument: Vec<&[u8]>) -> Argument {
     );
     Argument {
         argument_type: String::from_utf8(parsed_argument[0].to_owned()).unwrap(),
-        argument_name: Some(String::from_utf8(parsed_argument[1].to_owned()).unwrap()),
+        argument_name: parsed_argument
+            .get(1)
+            .map(|v| String::from_utf8(v.to_vec()).unwrap()),
     }
 }
 

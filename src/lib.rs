@@ -13,10 +13,13 @@ use errors::*;
 use std::vec::Vec;
 use std::iter::Iterator;
 
+use parser::Method;
+
 #[derive(Debug, PartialEq)]
 pub struct Class {
     pub namespaces: Vec<String>,
     pub name: String,
+    pub methods: Vec<Method>,
 }
 
 #[derive(Debug, PartialEq)]
@@ -27,7 +30,7 @@ pub struct Model {
 
 pub fn parse<T: AsRef<str>>(input: &T) -> Result<Model> {
     parser::header(input.as_ref().as_bytes())
-        .map(|(includes_raw, namespaces_raw, class_name_raw)| {
+        .map(|(includes_raw, namespaces_raw, class_name_raw, methods)| {
             let includes = includes_raw
                 .into_iter()
                 .map(|v| v.to_vec())
@@ -47,6 +50,7 @@ pub fn parse<T: AsRef<str>>(input: &T) -> Result<Model> {
                     Class {
                         namespaces,
                         name: class_name,
+                        methods,
                     },
                 ],
             }
@@ -68,7 +72,7 @@ mod tests {
 
     class Bar {
     virtual ~Bar() = default;
-    virtual void foo(int baz) = 0;
+    virtual void foo(int, bool boo) = 0;
     };
 
     }
@@ -95,4 +99,44 @@ mod tests {
             vec!["a".to_owned(), "da".to_owned()]
         )
     }
+
+    #[test]
+    fn it_parses_method_names() {
+        let model = parse(&TEST_INTERFACE).unwrap();
+        assert_eq!(model.classes[0].methods[0].name, "~Bar".to_owned());
+        assert_eq!(model.classes[0].methods[1].name, "foo".to_owned());
+    }
+
+    #[test]
+    fn it_parses_method_return_values() {
+        let model = parse(&TEST_INTERFACE).unwrap();
+        assert_eq!(
+            model.classes[0].methods[1].return_value,
+            Some("void".to_owned())
+        );
+    }
+
+    #[test]
+    fn it_parses_method_argument_types() {
+        let model = parse(&TEST_INTERFACE).unwrap();
+        assert_eq!(
+            model.classes[0].methods[1].arguments[0].argument_type,
+            "int".to_owned()
+        );
+        assert_eq!(
+            model.classes[0].methods[1].arguments[1].argument_type,
+            "bool".to_owned()
+        );
+    }
+
+    #[test]
+    fn it_parses_method_argument_names() {
+        let model = parse(&TEST_INTERFACE).unwrap();
+        assert_eq!(model.classes[0].methods[1].arguments[0].argument_name, None);
+        assert_eq!(
+            model.classes[0].methods[1].arguments[1].argument_name,
+            Some("boo".to_owned())
+        );
+    }
+
 }
